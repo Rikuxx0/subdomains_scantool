@@ -1,7 +1,8 @@
 # SubDomains_Scantool
 
 このツールは、偵察フェーズ（Reconnaissance）からアクティブスキャン（Active Scanning）を一気通貫で自動化するパイプラインです。サブドメインの収集、死活確認、URL探索、そして既知の脆弱性（CVE）や不適切な設定、リンク切れの診断を効率的に実行します。
-またこのツールはAntigravityを使用して作成されました。
+
+また、このツールはAntigravityを使用して作成されました。
 
 ## 構成
 - **偵察フェーズ**: `subfinder`, `github-subdomains`, `subBrute`, `httpx`, `waybackurls`, `katana`
