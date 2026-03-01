@@ -1,0 +1,6 @@
+# Recon-to-Scan Pipeline Dependencies
+
+# The main script uses standard libraries, but these are common for extensions
+requests
+colorama
+dnspython
