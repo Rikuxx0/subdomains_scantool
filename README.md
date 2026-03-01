@@ -1,6 +1,7 @@
-# Recon-to-Scan Pipeline (脆弱性診断自動化パイプライン)
+# Subdomains_Scantool
 
 このツールは、偵察フェーズ（Reconnaissance）からアクティブスキャン（Active Scanning）を一気通貫で自動化するパイプラインです。サブドメインの収集、死活確認、URL探索、そして既知の脆弱性（CVE）や不適切な設定、リンク切れの診断を効率的に実行します。
+またこのツールはAntigravityを使用して作成されました。
 
 ## 構成
 - **偵察フェーズ**: `subfinder`, `github-subdomains`, `subBrute`, `httpx`, `waybackurls`, `katana`
@@ -29,14 +30,14 @@ pip3 install -r requirements.txt
 
 ## 使い方
 
-### 基本実行（偵察フェーズのみ）
+### 基本実行（このモードではパッシブスキャンを使用しています。）
 ターゲットドメインを指定して実行します。結果はデフォルトで `outputs/` ディレクトリに保存されます。
 
 ```bash
 python3 recon_to_scan.py -d example.com
 ```
 
-### アクティブスキャンを含む実行
+### アクティブスキャンを含む実行 （注意:　このモードはアクティブスキャンのため、環境に対して影響を及ぼす可能性があります。）
 `--active` フラグを付与すると、Nuclei等による脆弱性スキャンも実行されます。
 
 ```bash
