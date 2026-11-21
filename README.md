@@ -11,23 +11,17 @@
 ## セットアップ
 
 ### 1. 依存ツールのインストール
-このツールはGo言語で記述された多くのツールに依存しています。以下のスクリプトを実行して一括インストールしてください。
+`go` と `python3` が必要です。以下のスクリプトは Python 仮想環境と、基本実行に必要な Go ツールをインストールします。途中で必須ツールのインストールに失敗した場合は、その場で停止します。
 
 ```bash
-chmod +x install_tools.sh
 ./install_tools.sh
+source .venv/bin/activate
+export PATH="$(go env GOPATH)/bin:$PATH"
 ```
 
-**注意**: `go` と `python3` がインストールされている必要があります。また、インストール後、`~/go/bin` を環境変数 `PATH` に追加してください。
+`github-subdomains`、`subzy`、`nuclei` のインストールに失敗した場合は警告を表示します。GitHub トークン使用時は `github-subdomains`、`--active` 使用時は `nuclei` が必要です。SubBrute と NucleiFuzzer はこのスクリプトではインストールしません。
 
-```bash
-export PATH=$PATH:$(go env GOPATH)/bin
-```
-
-### 2. Python依存関係のインストール
-```bash
-pip3 install -r requirements.txt
-```
+実行前に不足している必須ツールがあれば、ツール名を表示して終了します。外部コマンドが途中で失敗した場合も終了コード 1 で停止します。
 
 ## 使い方
 

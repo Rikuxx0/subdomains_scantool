@@ -1,70 +1,37 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
 
-# Recon-to-Scan External Tools Installation Script
+for tool in go python3; do
+    if ! command -v "$tool" >/dev/null 2>&1; then
+        printf 'Required tool not found: %s\n' "$tool" >&2
+        exit 1
+    fi
+done
 
-# Colors
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-NC='\033[0m'
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
 
-echo -e "${GREEN}[*] Starting tool installation...${NC}"
+# These four tools are required for the default reconnaissance run.
+go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+go install github.com/projectdiscovery/httpx/cmd/httpx@latest
+go install github.com/tomnomnom/waybackurls@latest
+go install github.com/projectdiscovery/katana/cmd/katana@latest
 
-# Check for Go
-if ! command -v go &> /dev/null; then
-    echo -e "${RED}[!] Go is not installed. Please install Go first: https://golang.org/doc/install${NC}"
-    exit 1
-fi
+install_optional() {
+    local name="$1"
+    shift
+    if ! "$@"; then
+        printf 'Optional tool %s could not be installed; continuing.\n' "$name" >&2
+    fi
+}
 
-# Check for Python/Pip
-if ! command -v pip3 &> /dev/null; then
-    echo -e "${RED}[!] pip3 is not installed. Please install Python 3 and pip.${NC}"
-    exit 1
-fi
+install_optional github-subdomains go install github.com/gwen001/github-subdomains@latest
+install_optional subzy go install github.com/LukaSikic/subzy@latest
+install_optional nuclei go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
+install_optional wafw00f .venv/bin/python -m pip install wafw00f
 
-# 1. Install Python dependencies
-echo -e "${GREEN}[*] Installing Python dependencies...${NC}"
-pip3 install -r requirements.txt
-pip3 install wafw00f
-
-# 2. Install Go-based tools
-echo -e "${GREEN}[*] Installing Go-based tools...${NC}"
-
-echo -e "${GREEN}[+] Installing subfinder...${NC}"
-go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
-
-echo -e "${GREEN}[+] Installing github-subdomains...${NC}"
-go install -v github.com/gwen001/github-subdomains@latest
-
-echo -e "${GREEN}[+] Installing httpx...${NC}"
-go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
-
-echo -e "${GREEN}[+] Installing waybackurls...${NC}"
-go install -v github.com/tomnomnom/waybackurls@latest
-
-echo -e "${GREEN}[+] Installing katana...${NC}"
-go install -v github.com/projectdiscovery/katana/cmd/katana@latest
-
-echo -e "${GREEN}[+] Installing subzy...${NC}"
-go install -v github.com/LukaSikic/subzy@latest
-
-echo -e "${GREEN}[+] Installing nuclei...${NC}"
-go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
-
-echo -e "${GREEN}[+] Installing gf...${NC}"
-go install -v github.com/tomnomnom/gf@latest
-
-echo -e "${GREEN}[+] Installing NucleiFuzzer (nf)...${NC}"
-# Note: NucleiFuzzer is often a script, but sometimes distributed as a binary.
-# This assumes the binary version or the common installation method.
-go install -v github.com/0xKayala/NucleiFuzzer@latest
-
-echo -e "${GREEN}[+] Installing subBrute...${NC}"
-if [ ! -d "tools/subbrute" ]; then
-    mkdir -p tools
-    git clone https://github.com/TheRook/subbrute.git tools/subbrute
-fi
-pip3 install -r tools/subbrute/requirements.txt
-
-echo -e "${GREEN}[*] Installation complete!${NC}"
-echo -e "${GREEN}[*] Please ensure ~/go/bin is in your PATH.${NC}"
-echo -e "${GREEN}[*] Example: export PATH=\$PATH:\$(go env GOPATH)/bin${NC}"
+printf 'Core tools installed. Activate the Python environment and add Go binaries to PATH:\n'
+printf '  source .venv/bin/activate\n'
+printf '  export PATH="$(go env GOPATH)/bin:$PATH"\n'
+printf 'Optional SubBrute and NucleiFuzzer are not installed by this script.\n'

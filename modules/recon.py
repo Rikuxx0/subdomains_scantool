@@ -1,9 +1,23 @@
 import os
-from utils.executor import run_command, logger
+
+from utils.executor import logger, run_command
+
+
+def _read_lines(path):
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as f:
+        return [line.strip() for line in f if line.strip()]
+
+
+def _write_lines(path, lines):
+    with open(path, "w", encoding="utf-8") as f:
+        for line in sorted(set(lines)):
+            f.write(line + "\n")
+
 
 def run_recon(domain, github_token=None, output_dir="outputs"):
     os.makedirs(output_dir, exist_ok=True)
-    
     sub_txt = os.path.join(output_dir, "sub.txt")
     github_txt = os.path.join(output_dir, "github.txt")
     brute_txt = os.path.join(output_dir, "brute.txt")
@@ -13,49 +27,38 @@ def run_recon(domain, github_token=None, output_dir="outputs"):
     url2_txt = os.path.join(output_dir, "url2.txt")
     all_urls_txt = os.path.join(output_dir, "all_urls.txt")
 
-    # 1.1 Subfinder
     logger.info("Step 1.1: Running Subfinder...")
-    run_command(f"subfinder -d {domain} -all -o {sub_txt}")
+    run_command(["subfinder", "-d", domain, "-all", "-o", sub_txt])
 
-    # 1.2 GitHub Subdomains
     if github_token:
         logger.info("Step 1.2: Running github-subdomains...")
-        run_command(f"github-subdomains -d {domain} -t {github_token} -o {github_txt}")
+        run_command(["github-subdomains", "-d", domain, "-t", github_token, "-o", github_txt], secret_args=(github_token,))
     else:
-        logger.warning("GitHub token not provided. Skipping github-subdomains.")
-        with open(github_txt, 'w') as f:
-            pass
+        logger.info("GitHub token not provided. Skipping github-subdomains.")
 
-    # 1.3 SubBrute
     subbrute_path = "tools/subbrute/subbrute.py"
     if os.path.exists(subbrute_path):
         logger.info("Step 1.3: Running SubBrute...")
-        # Note: subbrute needs a wordlist, it usually comes with names.txt
-        wordlist = "tools/subbrute/names.txt"
-        run_command(f"python3 {subbrute_path} -s {wordlist} {domain} -o {brute_txt}")
+        run_command(["python3", subbrute_path, "-s", "tools/subbrute/names.txt", domain, "-o", brute_txt])
     else:
-        logger.warning("SubBrute not found. Skipping brute-force.")
-        with open(brute_txt, 'w') as f:
-            pass
+        logger.info("SubBrute not found. Skipping brute-force.")
 
-    # 1.4 Integration / Deduplication
     logger.info("Step 1.4: Merging and deduplicating subdomains...")
-    run_command(f"cat {sub_txt} {github_txt} {brute_txt} | sort -u > {domain_txt}")
+    _write_lines(domain_txt, _read_lines(sub_txt) + _read_lines(github_txt) + _read_lines(brute_txt))
 
-    # 1.4 Liveness check
-    logger.info("Step 1.4: Running httpx for liveness check...")
-    run_command(f"httpx -l {domain_txt} -sc -o {alive_txt}")
+    logger.info("Step 1.5: Running httpx for liveness check...")
+    run_command(["httpx", "-l", domain_txt, "-sc", "-o", alive_txt])
+    alive_hosts = [line.split()[0] for line in _read_lines(alive_txt)]
 
-    # 2. Content Discovery
     logger.info("Step 2.1: Running waybackurls...")
-    # waybackurls usually takes input from stdin
-    run_command(f"cat {alive_txt} | cut -d' ' -f1 | waybackurls > {urls_txt}")
+    run_command(["waybackurls"], input_text="\n".join(alive_hosts) + "\n", output_file=urls_txt)
 
     logger.info("Step 2.2: Running katana...")
-    run_command(f"katana -list {alive_txt} -jc -o {url2_txt}")
+    katana_input = os.path.join(output_dir, "katana_input.txt")
+    _write_lines(katana_input, alive_hosts)
+    run_command(["katana", "-list", katana_input, "-jc", "-o", url2_txt])
 
     logger.info("Step 2.3: Merging and deduplicating all URLs...")
-    run_command(f"cat {urls_txt} {url2_txt} | sort -u > {all_urls_txt}")
-
+    _write_lines(all_urls_txt, _read_lines(urls_txt) + _read_lines(url2_txt))
     logger.info("Reconnaissance phase completed.")
     return all_urls_txt, alive_txt

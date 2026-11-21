@@ -1,6 +1,7 @@
 import argparse
 import sys
 import os
+import shutil
 
 # Ensure the project root is in sys.path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -18,7 +19,17 @@ def main():
 
     args = parser.parse_args()
 
-    logger.info(f"Starting Recon-to-Scan pipeline for target: {args.domain}")
+    required = ["subfinder", "httpx", "waybackurls", "katana"]
+    if args.token:
+        required.append("github-subdomains")
+    if args.active:
+        required.append("nuclei")
+    missing = [tool for tool in required if shutil.which(tool) is None]
+    if missing:
+        logger.error("Missing required tools: %s. Run ./install_tools.sh and add the Go bin directory to PATH.", ", ".join(missing))
+        sys.exit(1)
+
+    logger.info("Starting Recon-to-Scan pipeline for target: %s", args.domain)
 
     try:
         # Step 1: Reconnaissance

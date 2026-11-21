@@ -1,2 +1,5 @@
 # This is a ignore file.
 /outputs
+.venv/
+__pycache__/
+tools/
